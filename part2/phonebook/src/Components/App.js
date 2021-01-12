@@ -2,76 +2,99 @@ import React, { useEffect, useState } from 'react'
 import Search from './Search';
 import PersonForm from './PersonForm';
 import Names from './Names'
-import Axios from 'axios';
+import phonebook from '../services/phonebook'
+import Confirmation from './Confirmation'
 
 const App = () => {
-  const [persons, setPersons] = useState([]) 
-  const [ newName, setNewName ] = useState('')
-  const [ newNumber, setNewNumber ] = useState('')
+  const [ persons, setPersons] = useState([]) 
+  const [ newInfo, setNewInfo ] = useState({
+    name: '',
+    number: ''
+  });
   const [ newSearch, setNewSearch ] = useState('')
   const [ searchResults, setSearchResults ] = useState([]);
+  const [ confirmation, setConfirmation ] = useState(null)
 
+  // Get data from server
   useEffect(() => {
-    console.log('effect')
-    Axios
-      .get('http://localhost:3001/persons')
-      .then(response => {
-        setPersons(response.data)
-      })
+    phonebook
+      .getAll()
+      .then(response => setPersons(response))
   }, [])
 
   const addName = (e) => {
     e.preventDefault();
-    const isFound = persons.find(person => person.name === newName);
+    const isFound = persons.find(person => person.name === newInfo.name);
+    let update = false;
+    // if user in database, ask to update.  else add to database
     if (isFound) {
-      alert(`${newName} is already in phonebook`);
-      setNewName('');
-      return;
+      update = window.confirm(`${newInfo.name} is already in phonebook.  Would you like to replace the info?`);
     }
     const person = {
-      name: newName,
-      number: newNumber
+      name: newInfo.name,
+      number: newInfo.number
     };
-    setPersons(persons.concat(person));
-    setNewName('');
-  }
+    if (!isFound) {
+      phonebook
+        .create(person)
+        .then(response => {
+          setPersons(persons.concat(response));
+        })
+        setConfirmation(person.name)
+        setTimeout(() => {
+          setConfirmation(null)
+        }, 5000)
+    } else if (update) {
+      phonebook
+        .update(isFound.id, person)
+        .then(response => {
+          setPersons(persons.map(prevPerson => prevPerson.name !== person.name ? prevPerson : response))
+        })
+        .catch(error => {
+          alert(`${person.name} was already deleted from server`);
+          setPersons(persons.filter(prevPerson => person.name !== prevPerson.name))
+        })
+    }
+    setNewInfo({
+      name: '',
+      number: ''
+    });
 
-  const handleNameChange = (e) => {
-    setNewName(e.target.value);
   }
-
-  const handleNumberChange = (e) => {
-    setNewNumber(e.target.value);
+  const handleChange = e => {
+    setNewInfo({...newInfo, [e.target.name]: e.target.value})
   }
-
 
   const handleSearchChange = (e) => {
     setNewSearch(e.target.value);
-    console.log(newSearch);
   }
 
+  const deletePerson = (personToDelete) => {
+    if (window.confirm(`Delete ${personToDelete.name}`)) {
+      phonebook
+        .deletePerson(personToDelete.id)
+        .then(setPersons(persons.filter(person => person.id !== personToDelete.id)))
+    }
+  }
 
   useEffect(() => {
     const person = persons.filter((person) => {
-      console.log("Person compare: ", person.name.toLowerCase())
-      console.log("search compare: ", newSearch.toLowerCase())
-      console.log(person.name.toLowerCase().includes(newSearch.toLowerCase()))
       return person.name.toLowerCase().includes(newSearch.toLowerCase())
     });
     setSearchResults(person);
-    console.log(person);
-  }, [newSearch]);
+  }, [newSearch, persons]);
 
   return (
     <div>
+      <Confirmation name={confirmation} />
       <h2>Phonebook</h2>
       <Search newSearch={newSearch} handleSearchChange={handleSearchChange} />
 
       <h2>Add new</h2>
-      <PersonForm newName={newName} handleNameChange={handleNameChange} newNumber={newNumber} handleNumberChange={handleNumberChange} addName={addName} />
+      <PersonForm newInfo={newInfo} handleChange={handleChange} addName={addName} />
 
       <h2>Numbers</h2>
-      <Names searchResults={searchResults} />
+      <Names searchResults={searchResults} deletePerson={deletePerson} />
     </div>
   )
 }

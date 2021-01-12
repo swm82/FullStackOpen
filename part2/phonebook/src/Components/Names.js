@@ -5,7 +5,7 @@ const Names = (props) => {
         <div>
             <ul>
                 {props.searchResults.map((person) =>
-                    <li key={person.name}>{person.name} {person.number}</li>
+                    <li key={person.name}>{person.name} {person.number}<button onClick={() => props.deletePerson(person)}>Delete</button></li>
                 )}
             </ul>
         </div>
