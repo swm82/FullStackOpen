@@ -19,7 +19,7 @@
     "eject": "react-scripts eject",
     "server": "json-server -p3001 --watch db.json",
     "build:ui": "rm -rf build && npm run build --prod && cp -r build ../../../FSO-part3/",
-    "deploy": "git push heroku main",
+    "deploy": "git push heroku HEAD:master",
     "deploy:full": "npm run build:ui && git add . && git commit -m uibuild && npm run deploy",    
     "logs:prod": "heroku logs --tail"
   },
