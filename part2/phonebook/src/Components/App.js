@@ -4,6 +4,7 @@ import PersonForm from './PersonForm';
 import Names from './Names'
 import phonebook from '../services/phonebook'
 import Confirmation from './Confirmation'
+import Error from './Error'
 
 const App = () => {
   const [ persons, setPersons] = useState([]) 
@@ -14,6 +15,7 @@ const App = () => {
   const [ newSearch, setNewSearch ] = useState('')
   const [ searchResults, setSearchResults ] = useState([]);
   const [ confirmation, setConfirmation ] = useState(null)
+  const [ error, setError ] = useState(null)
 
   // Get data from server
   useEffect(() => {
@@ -29,6 +31,7 @@ const App = () => {
     // if user in database, ask to update.  else add to database
     if (isFound) {
       update = window.confirm(`${newInfo.name} is already in phonebook.  Would you like to replace the info?`);
+      console.log(update)
     }
     const person = {
       name: newInfo.name,
@@ -39,11 +42,17 @@ const App = () => {
         .create(person)
         .then(response => {
           setPersons(persons.concat(response));
+          setConfirmation(person.name)
+          setTimeout(() => {
+            setConfirmation(null)
+          }, 5000)
         })
-        setConfirmation(person.name)
-        setTimeout(() => {
-          setConfirmation(null)
-        }, 5000)
+        .catch(error => {
+          setError(error.response.data.error)
+          setTimeout(() => {
+            setError(null)
+          }, 5000)
+        })
     } else if (update) {
       phonebook
         .update(isFound.id, person)
@@ -87,6 +96,7 @@ const App = () => {
   return (
     <div>
       <Confirmation name={confirmation} />
+      <Error error={error} />
       <h2>Phonebook</h2>
       <Search newSearch={newSearch} handleSearchChange={handleSearchChange} />
 
